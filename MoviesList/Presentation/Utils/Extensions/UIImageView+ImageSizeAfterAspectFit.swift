@@ -1,0 +1,55 @@
+import Foundation
+import UIKit
+
+extension UIImageView {
+
+    var imageSizeAfterAspectFit: CGSize {
+        var newWidth: CGFloat
+        var newHeight: CGFloat
+
+        guard let image = image else { return frame.size }
+
+        if image.size.height >= image.size.width {
+            newHeight = frame.size.height
+            newWidth = ((image.size.width / (image.size.height)) * newHeight)
+
+            if CGFloat(newWidth) > (frame.size.width) {
+                let diff = (frame.size.width) - newWidth
+                newHeight = newHeight + CGFloat(diff) / newHeight * newHeight
+                newWidth = frame.size.width
+            }
+        } else {
+            newWidth = frame.size.width
+            newHeight = (image.size.height / image.size.width) * newWidth
+
+            if newHeight > frame.size.height {
+                let diff = Float((frame.size.height) - newHeight)
+                newWidth = newWidth + CGFloat(diff) / newWidth * newWidth
+                newHeight = frame.size.height
+            }
+        }
+        return .init(width: newWidth, height: newHeight)
+    }
+}
+
+extension UIImageView {
+    func downloaded(from url: URL, contentMode mode: ContentMode = .scaleAspectFit) {
+        contentMode = mode
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard
+                let httpURLResponse = response as? HTTPURLResponse, httpURLResponse.statusCode == 200,
+                let mimeType = response?.mimeType, mimeType.hasPrefix("image"),
+                let data = data, error == nil,
+                let image = UIImage(data: data)
+                else { return }
+            DispatchQueue.main.async() { [weak self] in
+                self?.image = image
+            }
+        }.resume()
+    }
+    
+    func downloaded(from link: String, contentMode mode: ContentMode = .scaleAspectFit) {
+        guard let url = URL(string: link) else { return }
+        downloaded(from: url, contentMode: mode)
+    }
+}
